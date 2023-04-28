@@ -79,7 +79,7 @@ class SarsaAgent(baseAgents.BaseModelFreeControlAgent):
         """
         
         #You need to pick the correct policy! Set the below field to the correct one
-        self.policy = None
+        self.policy = policies.PolicyFromQValues(self)
     
     """
     You can add your own functions
@@ -91,7 +91,7 @@ class SarsaAgent(baseAgents.BaseModelFreeControlAgent):
         self.actionToTake = self.policy(self.env.getCurrentState())
 
     def run(self):
-        util.raiseNotDefined()
+        #util.raiseNotDefined()
         """
         Single step of the Sarsa Algorithm
         Comment out the previous line and write your code here.
@@ -103,8 +103,23 @@ class SarsaAgent(baseAgents.BaseModelFreeControlAgent):
         
         return False when the episode ends, return True otherwise!
         """
+        currentState = self.env.getCurrentState()
+        currentAction = self.policy(currentState)
+        nextState, reward = self.takeAction(currentAction)
+        nextAction = self.policy(nextState)
+
+        if self.isTerminal(currentState):
+            return False
+    
+        if self.isTerminal(nextState):
+            self.qvalues[(currentState, currentAction)] += self.alpha * (reward - self.qvalues[(currentState, currentAction)])
+            return False
         
-        #return True
+        self.qvalues[(currentState, currentAction)] += self.alpha * (reward + self.discount*self.qvalues[(nextState, nextAction)] - self.qvalues[(currentState, currentAction)])
+        self.numSteps += 1
+        
+        return True
+
         
 class QLearningAgent(baseAgents.BaseModelFreeControlAgent):
     def __init__(self, env, discount = 0.9, epsilon=0.3, alpha=0.05, alphaScheduler = None, epsilonScheduler = None):
@@ -115,7 +130,7 @@ class QLearningAgent(baseAgents.BaseModelFreeControlAgent):
         """
         
         #You need to pick the correct policy! Set the below field to the correct one
-        self.policy = None
+        self.policy = policies.PolicyFromQValues(self)
         
     """
     You can add your own functions
@@ -126,7 +141,7 @@ class QLearningAgent(baseAgents.BaseModelFreeControlAgent):
         self.numSteps = 0
 
     def run(self):
-        util.raiseNotDefined()
+        #util.raiseNotDefined()
         """
         Single step of the Q-Learning Algorithm
         Comment out the previous line and write your code here.
@@ -138,6 +153,20 @@ class QLearningAgent(baseAgents.BaseModelFreeControlAgent):
         
         return False when the episode ends, return True otherwise!
         """
+
+        currentState = self.env.getCurrentState()
+        currentAction = self.policy(currentState)
+        nextState, reward = self.takeAction(currentAction)
+        nextAction = self.policy(nextState)
+
+        if self.isTerminal(currentState):
+            return False
+
+        if self.isTerminal(nextState):
+            self.qvalues[(currentState, currentAction)] += (self.alpha*reward) - ((1-self.alpha)*self.qvalues[(currentState, currentAction)])
+            return False
         
-        #return True
+        self.qvalues[(currentState, currentAction)] += self.alpha*(reward + self.discount*self.qvalues[(nextState, nextAction)]) - (1-self.alpha)*self.qvalues[(currentState, currentAction)]
+        self.numSteps += 1
+        return True
        

@@ -135,10 +135,6 @@ class QValueIterationAgent(baseAgents.BaseDpAgent):
 
     def run(self):
         #util.raiseNotDefined()
-
-        for iters in range(self.maxIters):
-            if(self._iter() < self.errorThreshold):
-                break
         
         """
         Comment out the previous line and write your code here.
@@ -151,54 +147,43 @@ class QValueIterationAgent(baseAgents.BaseDpAgent):
         
         return the number of iterations!
         """
-        
+        for iters in range(self.maxIters):
+            delta = self._iter()
+            if( delta < self.errorThreshold):
+                break
         return iters
-
+    
     def _iter(self):
         """
         A single policy iteration evaluation. 
         Returns the maximum difference between previous values and current values
         """
-        delta = -math.inf
-        V = copy.deepcopy(self.values)
+        delta = 0
         for state in self.mdp.getStates():
-            if self.mdp.isTerminal(state):
-                continue
-            val = 0
             for action in self.mdp.getPossibleActions(state):
-                actionProbs = self.policy.policyProbs(state)
-                val += actionProbs[action] * self._getQValue(state, action, V)
-            self.values[state] = val
-            delta = max(abs(V[state] - val), delta)
+                val = self._getQValue(state, action)
+                delta = max(abs(self.qvalues[(state, action)] - val), delta)
+                self.qvalues[(state, action)] = val
         return delta
-
+        
+    # fixed
     def getValue(self, state):
         act = self.policy(state)
         val = self.qvalues[(state, act)]
         return val
-    
-    def _getQValue(self, state, action, V):
-        val = 0
-        for (nextState, probability) in self.mdp.getTransitionStatesAndProbs(state, action):
-            if probability == 0:
-                continue
-            reward = self.mdp.getReward(state, action, nextState) 
-            val += probability * (reward + self.discount*V[nextState])
-        return val
 
+    # fixed
     def getValues(self):
         for state in self.mdp.getStates():
             self.values[state] = self.getValue(state)
         return self.values
-    
-    def getQValues(self):
-        for state in self.mdp.getStates():
-            for action in self.mdp.getPossibleActions(state):
-                self.qvalues[(state,action)] = self.getQValue(state,action)
-        return self.qvalues
-    
-    def getQValue(self, state, action):
-        return self._getQValue(state, action, self.values)
+
+    def _getQValue(self, state, action):
+        val = 0
+        for (nextState, pr) in self.mdp.getTransitionStatesAndProbs(state, action):
+            reward = self.mdp.getReward(state, action, nextState)
+            val += pr*(reward + self.discount*self.getValue(nextState))
+        return val
 
 class PolicyIterationAgent(PolicyEvaluationAgent):
     """
@@ -245,42 +230,4 @@ class PolicyIterationAgent(PolicyEvaluationAgent):
  
         #return iters
 
-    def _iter(self):
-        """
-        A single policy iteration evaluation. 
-        Returns the maximum difference between previous values and current values
-        """
-        delta = -math.inf
-        V = copy.deepcopy(self.values)
-        states = self.mdp.getStates()
-        for state in states:
-            if self.mdp.isTerminal(state):
-                continue
-            val = 0
-            actions = self.mdp.getPossibleActions(state)
-            for action in actions:
-                actionProbs = self.policy.policyProbs(state)
-                val += actionProbs[action]*self._getQValue(state, action, V)
-            self.values[state] = val
-            delta = max(abs(V[state]-val),delta)
-        return delta
-
-    def getQValues(self):
-        for state in self.mdp.getStates():
-            for action in self.mdp.getPossibleActions(state):
-                self.qvalues[(state,action)] = self.getQValue(state,action)
-        return self.qvalues
-
-    def _getQValue(self, state, action, V):
-        val = 0
-        for actPr in self.mdp.getTransitionStatesAndProbs(state, action):
-            nextState = actPr[0]
-            pr = actPr[1]
-            if pr == 0:
-                continue
-            val += pr*(self.mdp.getReward(state, action, nextState) + self.discount*V[nextState])
-        return val
-
-    def getQValue(self, state, action):
-        return self._getQValue(state, action, self.values)
 
